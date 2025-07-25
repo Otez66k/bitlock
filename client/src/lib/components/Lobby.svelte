@@ -56,11 +56,16 @@
     {#each CHARACTERS as c}
       <div class="cursor-pointer flex flex-col items-center" on:click={() => {
         players.update((arr) => {
-          const me = arr.find((p) => p.id === myId)!;
+          const meIdx = arr.findIndex((p) => p.id === myId);
+          if (meIdx === -1) return arr; // current user not found
+          const me = arr[meIdx];
           // ensure character not taken by same team
           const already = arr.find((p) => p.teamIndex === me.teamIndex && p.characterId === c.id);
-          if (!already) me.characterId = c.id;
-          return [...arr];
+          if (already) return arr;
+
+          const updated = [...arr];
+          updated[meIdx] = { ...me, characterId: c.id };
+          return updated;
         });
       }}>
         <img src={c.avatar} alt={c.name} class="h-16 w-16 rounded-full" />
