@@ -5,10 +5,10 @@ export type Team = {
 };
 
 export const TEAMS: Team[] = [
-  { id: "bastard", name: "Bastard Müncheng", flag: "/img/flags/bastard.png" },
-  { id: "ubers", name: "Ubers", flag: "/img/flags/ubers.png" },
-  { id: "manshine", name: "Manshine City", flag: "/img/flags/manshine.png" },
-  { id: "pxg", name: "PxG", flag: "/img/flags/pxg.png" },
-  { id: "real", name: "Re Al", flag: "/img/flags/real.png" },
-  { id: "barcha", name: "FC Barcha", flag: "/img/flags/barcha.png" }
+  { id: "bastard", name: "Bastard München", flag: "/img/flags/b_munchen_logo.png" },
+  { id: "ubers", name: "Ubers", flag: "/img/flags/ubers_logo.png" },
+  { id: "manshine", name: "Manshine City", flag: "/img/flags/m_city_logo.png" },
+  { id: "pxg", name: "PxG", flag: "/img/flags/pxg_logo.png" },
+  { id: "real", name: "Re Al", flag: "/img/flags/re_al_logo.png" },
+  { id: "barcha", name: "FC Barcha", flag: "/img/flags/fc_barcha_logo.png" }
 ];
