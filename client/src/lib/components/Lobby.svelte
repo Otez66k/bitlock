@@ -1,26 +1,36 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { players, leftTeamIndex, rightTeamIndex, leftTeam, rightTeam } from '$lib/stores/lobby';
+  import type { LobbyPlayer } from '$lib/stores/lobby';
+  import type { Team } from '$lib/constants/teams';
   import { gamePhase } from '$lib/stores/game';
   import TeamPanel from './TeamPanel.svelte';
   import { CHARACTERS } from '$lib/constants/characters';
-  import type { LobbyPlayer } from '$lib/stores/lobby';
 
   // TEMP: simulate me() from playroomkit
   let myId = '';
-$: myPlayer = $players.find(p => p.id === myId);
-$: myTeamJoined = myPlayer && myPlayer.teamIndex !== null;
+  let myPlayer: LobbyPlayer | undefined;
+  let leftPlayers: LobbyPlayer[] = [];
+  let rightPlayers: LobbyPlayer[] = [];
+  let myTeamJoined: boolean = false;
 
-function takenByTeam(charId: string) {
-  if (!myPlayer || myPlayer.teamIndex === null) return false;
-  return $players.some(p => p.teamIndex === myPlayer.teamIndex && p.characterId === charId);
-}
+  $: leftPlayers = $players.filter((p: LobbyPlayer) => p.teamIndex === 0);
+  $: rightPlayers = $players.filter((p: LobbyPlayer) => p.teamIndex === 1);
+  $: myTeamJoined = !!myPlayer && myPlayer.teamIndex !== null;
+
+  $: myPlayer = $players.find((p: LobbyPlayer) => p.id === myId);
+
+  function takenByTeam(charId: string): boolean {
+    if (!myPlayer || myPlayer.teamIndex === null) return false;
+    return $players.some(p => p.teamIndex === myPlayer.teamIndex && p.characterId === charId);
+  }
+
   onMount(() => {
     myId = Math.random().toString(36).slice(2);
     players.update((arr) => [...arr, { id: myId, name: 'Me', avatar: 'https://i.pravatar.cc/64', teamIndex: null }]);
   });
 
-  function joinTeam(side: 'left' | 'right', slotIdx: number) {
+  function joinTeam(side: 'left' | 'right', slotIdx: number): void {
     const desiredTeamIdx = side === 'left' ? 0 : 1;
     players.update((arr) => {
       const copy = [...arr];
@@ -32,9 +42,9 @@ function takenByTeam(charId: string) {
     });
   }
 
-  function startEnabled($players, $leftTeam, $rightTeam) {
-    const leftHas = $players.some((p) => p.teamIndex === 0 && p.characterId);
-    const rightHas = $players.some((p) => p.teamIndex === 1 && p.characterId);
+  function startEnabled(playersArr: LobbyPlayer[], _left: Team, _right: Team): boolean {
+    const leftHas = playersArr.some((p) => p.teamIndex === 0 && p.characterId);
+    const rightHas = playersArr.some((p) => p.teamIndex === 1 && p.characterId);
     return leftHas && rightHas;
   }
 </script>
@@ -43,7 +53,7 @@ function takenByTeam(charId: string) {
   <div class="flex flex-row space-x-20">
     <!-- LEFT TEAM -->
     <TeamPanel
-      players={$players.filter(p => p.teamIndex === 0)}
+      players={leftPlayers}
       team={$leftTeam}
       onArrow={(dir) => {
         leftTeamIndex.update((i) => (dir === 'left' ? (i + 5) % 6 : (i + 1) % 6));
@@ -53,7 +63,7 @@ function takenByTeam(charId: string) {
 
     <!-- RIGHT TEAM -->
     <TeamPanel
-      players={$players.filter(p => p.teamIndex === 1)}
+      players={rightPlayers}
       team={$rightTeam}
       onArrow={(dir) => {
         rightTeamIndex.update((i) => (dir === 'left' ? (i + 5) % 6 : (i + 1) % 6));

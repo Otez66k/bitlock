@@ -12,7 +12,7 @@
 	import { insertCoin, onPlayerJoin, me } from "playroomkit";
 
 	// Env variables
-	import { PUBLIC_PLAYROOM_ID } from "$env/static/public";
+	const PUBLIC_PLAYROOM_ID = "";
 
 	// Utils
 	import { Player } from "$lib/models/Player";
@@ -55,6 +55,9 @@
 		renderer.shadowMap.enabled = true;
 		renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		rootElement.appendChild(renderer.domElement);
+
+		composer = new EffectComposer(renderer);
+		composer.setSize(renderWidth, renderHeight);
 
 		const scene = new THREE.Scene();
 
