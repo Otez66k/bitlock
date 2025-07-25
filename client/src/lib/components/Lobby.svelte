@@ -8,17 +8,26 @@
 
   // TEMP: simulate me() from playroomkit
   let myId = '';
+$: myPlayer = $players.find(p => p.id === myId);
+$: myTeamJoined = myPlayer && myPlayer.teamIndex !== null;
+
+function takenByTeam(charId: string) {
+  if (!myPlayer || myPlayer.teamIndex === null) return false;
+  return $players.some(p => p.teamIndex === myPlayer.teamIndex && p.characterId === charId);
+}
   onMount(() => {
     myId = Math.random().toString(36).slice(2);
     players.update((arr) => [...arr, { id: myId, name: 'Me', avatar: 'https://i.pravatar.cc/64', teamIndex: null }]);
   });
 
   function joinTeam(side: 'left' | 'right', slotIdx: number) {
+    const desiredTeamIdx = side === 'left' ? 0 : 1;
     players.update((arr) => {
       const copy = [...arr];
       const me = copy.find((p) => p.id === myId)!;
       // Unassign previous
-      me.teamIndex = side === 'left' ? 0 : 1;
+      me.teamIndex = desiredTeamIdx;
+      me.characterId = undefined;
       return copy;
     });
   }
@@ -34,38 +43,37 @@
   <div class="flex flex-row space-x-20">
     <!-- LEFT TEAM -->
     <TeamPanel
-      {players}
+      players={$players.filter(p => p.teamIndex === 0)}
       team={$leftTeam}
       onArrow={(dir) => {
         leftTeamIndex.update((i) => (dir === 'left' ? (i + 5) % 6 : (i + 1) % 6));
       }}
+      onJoin={(slot) => joinTeam('left', slot)}
     />
 
     <!-- RIGHT TEAM -->
     <TeamPanel
-      {players}
+      players={$players.filter(p => p.teamIndex === 1)}
       team={$rightTeam}
       onArrow={(dir) => {
         rightTeamIndex.update((i) => (dir === 'left' ? (i + 5) % 6 : (i + 1) % 6));
       }}
+      onJoin={(slot) => joinTeam('right', slot)}
     />
   </div>
 
   <!-- characters list (simple) -->
   <div class="mt-10 grid grid-cols-3 gap-4">
     {#each CHARACTERS as c}
-      <div class="cursor-pointer flex flex-col items-center" on:click={() => {
+      <div class="flex flex-col items-center"
+      class:pointer-events-none={!myTeamJoined}
+      class:opacity-30={!myTeamJoined || takenByTeam(c.id)}
+      on:click={() => {
+        if (!myTeamJoined || takenByTeam(c.id)) return;
         players.update((arr) => {
-          const meIdx = arr.findIndex((p) => p.id === myId);
-          if (meIdx === -1) return arr; // current user not found
-          const me = arr[meIdx];
-          // ensure character not taken by same team
-          const already = arr.find((p) => p.teamIndex === me.teamIndex && p.characterId === c.id);
-          if (already) return arr;
-
-          const updated = [...arr];
-          updated[meIdx] = { ...me, characterId: c.id };
-          return updated;
+          const me = arr.find((p) => p.id === myId)!;
+          me.characterId = c.id;
+          return [...arr];
         });
       }}>
         <img src={c.avatar} alt={c.name} class="h-16 w-16 rounded-full" />
