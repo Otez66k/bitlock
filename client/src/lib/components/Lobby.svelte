@@ -71,9 +71,13 @@ function takenByTeam(charId: string) {
       on:click={() => {
         if (!myTeamJoined || takenByTeam(c.id)) return;
         players.update((arr) => {
-          const me = arr.find((p) => p.id === myId)!;
-          me.characterId = c.id;
-          return [...arr];
+          const meIdx = arr.findIndex((p) => p.id === myId);
+          if (meIdx === -1) return arr;
+          const me = arr[meIdx];
+          const updated = [...arr];
+          updated[meIdx] = { ...me, characterId: c.id };
+          return updated;
+          
         });
       }}>
         <img src={c.avatar} alt={c.name} class="h-16 w-16 rounded-full" />
