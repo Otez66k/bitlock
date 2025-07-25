@@ -1,0 +1,9 @@
+{
+  "name": "bitlock",
+  "private": true,
+  "workspaces": ["client"],
+  "scripts": {
+    "build": "npm run build --workspace client",
+    "start": "node client/build/index.js"
+  }
+}
