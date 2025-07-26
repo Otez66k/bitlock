@@ -90,7 +90,11 @@
     const desiredTeamIdx = side === 'left' ? 0 : 1;
     players.update((arr) => {
       const copy = [...arr];
-      const me = copy.find((p) => p.id === myId)!;
+      const me = copy.find((p) => p.id === myId);
+      if (!me) {
+        console.error("Player not found in array for id", myId, copy);
+        return arr;
+      }
       // Unassign previous
       me.teamIndex = desiredTeamIdx;
       me.characterId = undefined;
