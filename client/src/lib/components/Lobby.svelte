@@ -6,7 +6,14 @@
   import { gamePhase } from '$lib/stores/game';
   import TeamPanel from './TeamPanel.svelte';
   import { CHARACTERS } from '$lib/constants/characters';
-  import { ActivitySDK } from '@discord/embedded-app-sdk';
+  // No import for ActivitySDK; use global window.DiscordActivity
+
+  type DiscordUser = {
+    id: string;
+    username: string;
+    avatar?: string;
+    avatarUrl?: string;
+  };
 
   let sdk: any;
   let myId = '';
@@ -27,19 +34,26 @@
   }
 
   onMount(async () => {
-    sdk = new ActivitySDK();
-    await sdk.ready();
+    sdk = (window as any).DiscordActivity || (window as any).DiscordSdk || (window as any).Discord;
+    if (!sdk) {
+      console.error("Discord Activity SDK not found. Are you running inside Discord?");
+      return;
+    }
+    if (typeof sdk.ready === 'function') {
+      await sdk.ready();
+    }
 
     // Get your own Discord user info
-    const user = await sdk.commands.getUser();
+    const user: DiscordUser = await sdk.commands.getUser();
     myId = user.id;
     players.update(arr => {
       const exists = arr.find(p => p.id === myId);
       if (!exists) {
+        // Ensure avatar is always a string (fallback to blank if missing)
         return [...arr, {
           id: myId,
           name: user.username,
-          avatar: user.avatar || user.avatarUrl,
+          avatar: user.avatar || user.avatarUrl || '',
           teamIndex: null
         }];
       }
@@ -47,11 +61,11 @@
     });
 
     // Listen for lobby presence (others joining/leaving)
-    sdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', ({ participants }) => {
-      players.set(participants.map(u => ({
+    sdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', ({ participants }: { participants: DiscordUser[] }) => {
+      players.set(participants.map((u: DiscordUser) => ({
         id: u.id,
         name: u.username,
-        avatar: u.avatar || u.avatarUrl,
+        avatar: u.avatar || u.avatarUrl || '', // always string
         teamIndex: null // you will sync this separately
       })));
     });
