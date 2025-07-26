@@ -8,6 +8,12 @@
   import { CHARACTERS } from '$lib/constants/characters';
   // No import for ActivitySDK; use global window.DiscordActivity
 
+  // Debug: Log all possible Discord SDK globals
+  console.log("DiscordActivity:", (window as any).DiscordActivity);
+  console.log("DiscordSdk:", (window as any).DiscordSdk);
+  console.log("Discord:", (window as any).Discord);
+  console.log("discordSdk:", (window as any).discordSdk);
+
   type DiscordUser = {
     id: string;
     username: string;
