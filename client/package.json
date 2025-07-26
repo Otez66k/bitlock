@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "svelte-kit dev",
-		"build": "svelte-kit sync && vite build",
+		"build": "ROLLUP_NO_NATIVE=1 svelte-kit sync && vite build",
 		"preview": "svelte-kit preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
