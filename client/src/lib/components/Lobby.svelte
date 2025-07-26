@@ -6,13 +6,14 @@
   import { gamePhase } from '$lib/stores/game';
   import TeamPanel from './TeamPanel.svelte';
   import { CHARACTERS } from '$lib/constants/characters';
-  import { insertCoin, onPlayerJoin, me } from 'playroomkit';
+  import { ActivitySDK } from '@discord/embedded-app-sdk';
 
+  let sdk: any;
   let myId = '';
   let myPlayer: LobbyPlayer | undefined;
   let leftPlayers: LobbyPlayer[] = [];
   let rightPlayers: LobbyPlayer[] = [];
-  let isPlayroomInitialized = false;
+  let isDiscordReady = false;
 
   $: leftPlayers = $players.filter((p: LobbyPlayer) => p.teamIndex === 0);
   $: rightPlayers = $players.filter((p: LobbyPlayer) => p.teamIndex === 1);
@@ -25,65 +26,38 @@
     return $players.some(p => p.teamIndex === myPlayer.teamIndex && p.characterId === charId);
   }
 
-  async function initializePlayroom() {
-    try {
-      await insertCoin({
-        skipLobby: true,
-      });
-      
-      const myState = me();
-      const profile = myState.getProfile();
-      
-      myId = myState.id;
-      
-      // Add myself to the players list with real Discord data
-      players.update((arr) => {
-        const existingPlayer = arr.find(p => p.id === myId);
-        if (!existingPlayer) {
-          return [...arr, { 
-            id: myId, 
-            name: profile.name, 
-            avatar: profile.photo, 
-            teamIndex: null 
-          }];
-        }
-        return arr;
-      });
-      
-      // Listen for other players joining
-      onPlayerJoin((playerState) => {
-        const profile = playerState.getProfile();
-        
-        players.update((arr) => {
-          const existingPlayer = arr.find(p => p.id === playerState.id);
-          if (!existingPlayer) {
-            return [...arr, {
-              id: playerState.id,
-              name: profile.name,
-              avatar: profile.photo,
-              teamIndex: null
-            }];
-          }
-          return arr;
-        });
-        
-        // Handle player leaving
-        playerState.onQuit(() => {
-          players.update((arr) => arr.filter(p => p.id !== playerState.id));
-        });
-      });
-      
-      isPlayroomInitialized = true;
-    } catch (error) {
-      console.error('Failed to initialize Playroom:', error);
-      // Fallback to temporary simulation if Discord Activity fails
-      myId = Math.random().toString(36).slice(2);
-      players.update((arr) => [...arr, { id: myId, name: 'Me', avatar: 'https://i.pravatar.cc/64', teamIndex: null }]);
-    }
-  }
+  onMount(async () => {
+    sdk = new ActivitySDK();
+    await sdk.ready();
 
-  onMount(() => {
-    initializePlayroom();
+    // Get your own Discord user info
+    const user = await sdk.commands.getUser();
+    myId = user.id;
+    players.update(arr => {
+      const exists = arr.find(p => p.id === myId);
+      if (!exists) {
+        return [...arr, {
+          id: myId,
+          name: user.username,
+          avatar: user.avatar || user.avatarUrl,
+          teamIndex: null
+        }];
+      }
+      return arr;
+    });
+
+    // Listen for lobby presence (others joining/leaving)
+    sdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', ({ participants }) => {
+      players.set(participants.map(u => ({
+        id: u.id,
+        name: u.username,
+        avatar: u.avatar || u.avatarUrl,
+        teamIndex: null // you will sync this separately
+      })));
+    });
+
+    isDiscordReady = true;
+    // TODO: Add state sync for team/character assignment using sdk.commands.sendActivityAction and subscribe
   });
 
   function joinTeam(side: 'left' | 'right', slotIdx: number): void {
