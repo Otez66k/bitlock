@@ -31,8 +31,6 @@
 		"playroomkit": "^0.0.74",
 		"three": "^0.161.0",
 		"three-mesh-bvh": "^0.7.4",
-		"vite-plugin-string": "^1.2.3",
-		"rollup": "^4.18.0",
-		"@rollup/rollup-linux-x64-gnu": "^4.18.0"
+		"vite-plugin-string": "^1.2.3"
 	}
 }
