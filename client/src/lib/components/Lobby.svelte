@@ -6,13 +6,13 @@
   import { gamePhase } from '$lib/stores/game';
   import TeamPanel from './TeamPanel.svelte';
   import { CHARACTERS } from '$lib/constants/characters';
+  import { insertCoin, onPlayerJoin, me } from 'playroomkit';
 
-  // TEMP: simulate me() from playroomkit
   let myId = '';
   let myPlayer: LobbyPlayer | undefined;
   let leftPlayers: LobbyPlayer[] = [];
   let rightPlayers: LobbyPlayer[] = [];
-  let myTeamJoined: boolean = false;
+  let isPlayroomInitialized = false;
 
   $: leftPlayers = $players.filter((p: LobbyPlayer) => p.teamIndex === 0);
   $: rightPlayers = $players.filter((p: LobbyPlayer) => p.teamIndex === 1);
@@ -25,9 +25,65 @@
     return $players.some(p => p.teamIndex === myPlayer.teamIndex && p.characterId === charId);
   }
 
+  async function initializePlayroom() {
+    try {
+      await insertCoin({
+        skipLobby: true,
+      });
+      
+      const myState = me();
+      const profile = myState.getProfile();
+      
+      myId = myState.id;
+      
+      // Add myself to the players list with real Discord data
+      players.update((arr) => {
+        const existingPlayer = arr.find(p => p.id === myId);
+        if (!existingPlayer) {
+          return [...arr, { 
+            id: myId, 
+            name: profile.name, 
+            avatar: profile.photo, 
+            teamIndex: null 
+          }];
+        }
+        return arr;
+      });
+      
+      // Listen for other players joining
+      onPlayerJoin((playerState) => {
+        const profile = playerState.getProfile();
+        
+        players.update((arr) => {
+          const existingPlayer = arr.find(p => p.id === playerState.id);
+          if (!existingPlayer) {
+            return [...arr, {
+              id: playerState.id,
+              name: profile.name,
+              avatar: profile.photo,
+              teamIndex: null
+            }];
+          }
+          return arr;
+        });
+        
+        // Handle player leaving
+        playerState.onQuit(() => {
+          players.update((arr) => arr.filter(p => p.id !== playerState.id));
+        });
+      });
+      
+      isPlayroomInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize Playroom:', error);
+      // Fallback to temporary simulation if Discord Activity fails
+      myId = Math.random().toString(36).slice(2);
+      players.update((arr) => [...arr, { id: myId, name: 'Me', avatar: 'https://i.pravatar.cc/64', teamIndex: null }]);
+    }
+  }
+
   onMount(() => {
-    myId = Math.random().toString(36).slice(2);
-    players.update((arr) => [...arr, { id: myId, name: 'Me', avatar: 'https://i.pravatar.cc/64', teamIndex: null }]);
+    initializePlayroom();
   });
 
   function joinTeam(side: 'left' | 'right', slotIdx: number): void {
